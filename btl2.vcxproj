@@ -19,15 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\02_getting_an_image_on_the_screen\02_getting_an_image_on_the_screen.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\..\02_getting_an_image_on_the_screen\circle.bmp" />
-    <Image Include="..\..\02_getting_an_image_on_the_screen\hello_world.bmp" />
-    <Image Include="..\..\circle.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\..\02_getting_an_image_on_the_screen\readme.txt" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
