@@ -8,6 +8,10 @@ and may not be redistributed without written permission.*/
 #include <string>
 #include <iostream>
 #include <math.h>
+#include <stdlib.h>
+#include <time.h> 
+
+
 #define PI 3.14159265
 #define PLAYER_NUM 2
 #define PLAYER_INFO 5
@@ -30,6 +34,22 @@ const int SCREEN_WIDTH = 1200;
 const int SCREEN_HEIGHT = 600;
 const int BALL_SIZE = 10;
 const int PLAYER_SIZE = 40;
+//KEYMAP
+//p1
+const SDL_Keycode P1_UP = SDLK_w;
+const SDL_Keycode P1_DOWN = SDLK_s;
+const SDL_Keycode P1_LEFT = SDLK_a;
+const SDL_Keycode P1_RIGHT = SDLK_d;
+const SDL_Keycode P1_KICK = SDLK_SPACE;
+const SDL_Keycode P1_SWITCH = SDLK_r;
+//p2
+const SDL_Keycode P2_UP = SDLK_UP;
+const SDL_Keycode P2_DOWN = SDLK_DOWN;
+const SDL_Keycode P2_LEFT = SDLK_LEFT;
+const SDL_Keycode P2_RIGHT = SDLK_RIGHT;
+const SDL_Keycode P2_KICK = SDLK_PERIOD;
+const SDL_Keycode P2_SWITCH = SDLK_m;
+
 enum aDirect
 {
 	aW = 0,
@@ -50,17 +70,19 @@ const double KICK_POWER = 200;
 const double SERVER_TICK = 1000 / 640;
 const double TICK_PER_SEC = 64;
 const double ballVMax = 200;
-const double ballFriction = 3;
+const double ballFriction = 4;
 const double PlayerFriction = 11;
 const double PlayerVMax = 25;
 const double PlayerAcceleration = 10;
+const double frictionThreshold = 85;
 
 std::string dir;
 //Image pathing
 const std::string circle = "ball.png";
 const std::string circle_ring = "circle_ring.bmp";
 const std::string bg = "field.png";
-
+const std::string windImg = "wind.png";
+const std::string scoreImg = "score.png";
 
 //The window we'll be rendering to
 SDL_Window* gWindow = NULL;
@@ -73,6 +95,8 @@ bool leftTurn = true;
 int score[2] = { 0,0 };
 int leftControl = 1;
 int rightControl = 0;
+double wind = 0;
+double windVelocity = 80;
 //Texture wrapper class
 class LTexture
 {
@@ -90,7 +114,7 @@ public:
 	void free();
 
 	//Renders texture at given point
-	void render(int x, int y, double angle = 0);
+	void render(int x, int y,  SDL_Rect* clip,double angle = 0);
 
 	//Gets image dimensions
 	int getWidth();
@@ -176,12 +200,13 @@ void LTexture::free()
 	}
 }
 
-void LTexture::render(int x, int y, double angle)
+void LTexture::render(int x, int y,  SDL_Rect* clip ,double angle)
 {
 	//Set rendering space and render to screen
+
 	SDL_Rect renderQuad = { x, y, mWidth, mHeight };
 	SDL_RendererFlip flipType = SDL_FLIP_NONE;
-	SDL_RenderCopyEx(gRenderer, mTexture, NULL, &renderQuad, angle, NULL,flipType);
+	SDL_RenderCopyEx(gRenderer, mTexture, clip, &renderQuad, angle, NULL,flipType);
 }
 
 int LTexture::getWidth()
@@ -217,6 +242,7 @@ private:
 	double friction;
 	double vMax;
 	bool isFriction;
+	int count = 0;
 
 public:
 	Vector()
@@ -308,6 +334,29 @@ public:
 		if (this->isFriction)
 		{
 			this->velocity = this->velocity - friction/TICK_PER_SEC <= 0 ? 0 : this->velocity - friction / TICK_PER_SEC;
+			if (this->velocity > frictionThreshold)
+			{
+
+
+				if (count > 1)
+				{
+					double nV = 0;
+					double nD = 0;
+					sumVector(this->velocity, this->vDirection, windVelocity / TICK_PER_SEC, wind, nV, nD);
+					this->setVDirection(nD);
+					this->setVelocity(nV);
+					count = 0;
+				}
+				else
+				{
+					count++;
+				}
+				
+			}
+			else
+			{
+				count = 0;
+			}
 			return;
 		}
 		else {
@@ -349,6 +398,8 @@ public:
 		}
 	}
 
+
+
 	void sumVector(double v1, double vD1, double v2, double vD2, double& value, double& direction)
 	{
 
@@ -366,38 +417,52 @@ public:
 		else
 		{
 			double degree = abs(vD1 - vD2);
-
+			
 			if (degree < 180)
 			{
-				double value = sqrt(v1 * v1 + v2 * v2 - 2 * v1 * v2 * cos(180 - degree));
+				value = sqrt(v1 * v1 + v2 * v2 - 2 * v1 * v2 * cos((180 - degree)*PI/180));
 				if (vD1 > vD2)
 				{
-					double nDegree = asin(v1 * sin(180 - degree) / value) * 180 / PI;
-					direction = vD2 + nDegree;
+					double nDegree = asin(v1 * sin((180 - degree) * PI / 180) / value) * 180 / PI;
+					if (degree <= 90) {
+						direction = vD2 + nDegree;
+					}
+					else {
+						direction =  vD2+  nDegree +90;
+
+					}
+					
 				}
 				else
 				{
-					double nDegree = asin(v2 * sin(180 - degree) / value) * 180 / PI;
+					double nDegree = asin(v2 * sin((180 - degree) * PI / 180) / value) * 180 / PI;
 					direction = vD1 + nDegree;
 				}
+				
 
 			}
 			else
 			{
 				degree = 360 - degree;
-				double value = sqrt(v1 * v1 + v2 * v2 - 2 * v1 * v2 * cos(180 - degree));
+				
+				value = sqrt(v1 * v1 + v2 * v2 - 2 * v1 * v2 * cos((180 - degree) * PI / 180));
 				if (vD1 > vD2)
 				{
-					double nDegree = asin(v1 * sin(180 - degree) / value) * 180 / PI;
+					double nDegree = asin(v2 * sin((180 - degree) * PI / 180) / value) * 180 / PI;
+
 					direction = vD1 + nDegree;
 				}
 				else
 				{
-					double nDegree = asin(v2 * sin(180 - degree) / value) * 180 / PI;
-					direction = vD2 + nDegree;
+					double nDegree = asin(v1 * sin((180 - degree) * PI / 180) / value) * 180 / PI;
+
+					direction = vD1 + nDegree;
 				}
+
 			}
+			
 		}
+		
 	}
 };
 
@@ -454,7 +519,7 @@ public:
 		if (kick)
 		{
 			
-			for (int i = 0; i < PLAYER_NUM; i++)
+			for (int i = 0; i < PLAYER_NUM*2; i++)
 			{
 				if (arr[i][4] == 1 and sqrt((arr[i][0] - this->x) * (arr[i][0] - this->x) + (arr[i][1] - this->y) * (arr[i][1] - this->y)) < KICK_AREA ) {
 
@@ -464,7 +529,7 @@ public:
 				}
 			}
 		}
-		this->texture.render(this->x - BALL_SIZE/2, this->y - BALL_SIZE/2, this->angle);
+		this->texture.render(this->x - BALL_SIZE/2, this->y - BALL_SIZE/2, NULL, this->angle);
 	}
 
 	void loadImg()
@@ -539,7 +604,7 @@ public:
 			this->y = UPY;
 			double boundDirection = direction < 90 ? 180 - direction : 540 - direction ;
 			vector.setVDirection(boundDirection);
-			vector.setVelocity(vector.getVelocity() / 2);
+			vector.setVelocity(vector.getVelocity() / 4);
 			return;
 		}
 		else if (this->y > DOWNY)
@@ -547,7 +612,7 @@ public:
 			this->y = DOWNY;
 			double boundDirection = direction < 180 ? 180 - direction : 540 - direction;
 			vector.setVDirection(boundDirection);
-			vector.setVelocity(vector.getVelocity() / 2);
+			vector.setVelocity(vector.getVelocity() / 4);
 			return;
 		}
 		else if (((this->x < UPX and this->x > LEFT_GOAL_X) or (this->x > DOWNX and this->x < RIGHT_GOAL_X)) and this->y < GOAL_UPY and this->y > GOAL_UPY - 4)
@@ -572,14 +637,14 @@ public:
 			
 			this->x = DOWNX;
 			vector.setVDirection(direction - 360);
-			vector.setVelocity(vector.getVelocity() / 2);
+			vector.setVelocity(vector.getVelocity() / 4);
 			return;
 		}
 		else if (this->x < UPX and (this->y > GOAL_DOWNY or this->y < GOAL_UPY) )
 		{
 			this->x = UPX;
 			vector.setVDirection(direction - 360);
-			vector.setVelocity(vector.getVelocity() / 2);
+			vector.setVelocity(vector.getVelocity() / 4);
 			return;
 		}
 		else if (this->x > RIGHT_GOAL_X)
@@ -695,7 +760,7 @@ public:
 		boundaryCheck();
 
 		this->makeMove();
-		this->texture.render(this->x - PLAYER_SIZE/2, this->y - PLAYER_SIZE / 2, this->angle);
+		this->texture.render(this->x - PLAYER_SIZE/2, this->y - PLAYER_SIZE / 2,NULL ,this->angle);
 	}
 
 	void loadImg()
@@ -789,12 +854,14 @@ public:
 		this->vector.setFriction(false);
 	}
 
-	void buttonDown(SDL_Keycode k, double x, double y)
+	void buttonDownLeft(SDL_Keycode k, double x, double y)
 	{
-		
+
+
+
 		switch (k)
 		{
-		case SDLK_r:
+		case P1_SWITCH:
 			leftControl = leftControl == 0 ? 1 : 0;
 			this->move = zilch;
 			if (isAim)
@@ -804,7 +871,7 @@ public:
 				kicked = true;
 			}
 			break;
-		case SDLK_a:
+		case P1_LEFT:
 			if (kicked) kicked = false;
 			if (this->move == zilch) this->move = aA;
 			if (this->move == aD) this->move = aA;
@@ -815,7 +882,7 @@ public:
 			kickDirection = this->move == zilch ? kickDirection : move;
 			this->angle = kickDirection;
 			break;
-		case SDLK_d:
+		case P1_RIGHT:
 			if (kicked) kicked = false;
 			if (this->move == zilch) this->move = aD;
 			if (this->move == aA) this->move = aD;
@@ -826,7 +893,7 @@ public:
 			kickDirection = this->move == zilch ? kickDirection : move;
 			this->angle = kickDirection;
 			break;
-		case SDLK_w:
+		case P1_UP:
 			if (kicked) kicked = false;
 			if (this->move == zilch) this->move = aW;
 			if (this->move == aS) this->move = aW;
@@ -837,7 +904,7 @@ public:
 			kickDirection = this->move == zilch ? kickDirection : move;
 			this->angle = kickDirection;
 			break;
-		case SDLK_s:
+		case P1_DOWN:
 			if (kicked) kicked = false;
 			if (this->move == zilch) this->move = aS;
 			if (this->move == aW) this->move = aS;
@@ -848,7 +915,7 @@ public:
 			kickDirection = this->move == zilch ? kickDirection : move;
 			this->angle = kickDirection;
 			break;
-		case SDLK_SPACE:
+		case P1_KICK:
 			std::cout << this->x << "||" << this->y << std::endl;
 			if (kicked) kicked = false;
 			if (!this->isSprint and !this->kicked and !this->drifted)
@@ -861,39 +928,39 @@ public:
 		}
 
 	}
-	void buttonUp(SDL_Keycode k)
+	void buttonUpLeft(SDL_Keycode k)
 	{
 		switch (k)
 		{
-		case SDLK_a:
+		case P1_LEFT:
 			if (this->move == aA) this->move = zilch;
 			if (this->move == aWA) this->move = aW;
 			if (this->move == aSA) this->move = aS;
 			kickDirection = this->move == zilch ? kickDirection : move;
 			this->angle = kickDirection;
 			break;
-		case SDLK_d:
+		case P1_RIGHT:
 			if (this->move == aD) this->move = zilch;
 			if (this->move == aWD) this->move = aW;
 			if (this->move == aSD) this->move = aS;
 			kickDirection = this->move == zilch ? kickDirection : move;
 			this->angle = kickDirection;
 			break;
-		case SDLK_w:
+		case P1_UP:
 			if (this->move == aW) this->move = zilch;
 			if (this->move == aWA) this->move = aA;
 			if (this->move == aWD) this->move = aD;
 			kickDirection = this->move == zilch ? kickDirection : move;
 			this->angle = kickDirection;
 			break;
-		case SDLK_s:
+		case P1_DOWN:
 			if (this->move == aS) this->move = zilch;
 			if (this->move == aSA) this->move = aA;
 			if (this->move == aSD) this->move = aD;
 			kickDirection = this->move == zilch ? kickDirection : move;
 			this->angle = kickDirection;
 			break;
-		case SDLK_SPACE:
+		case P1_KICK:
 			if (isAim)
 			{
 				kick = true;
@@ -903,6 +970,124 @@ public:
 		default:
 			break;
 		}
+		std::cout << kickDirection;
+
+	}
+	void buttonDownRight(SDL_Keycode k, double x, double y)
+	{
+
+		switch (k)
+		{
+		case P2_SWITCH:
+			rightControl = rightControl == 0 ? 1 : 0;
+			this->move = zilch;
+			if (isAim)
+			{
+				kick = true;
+				isAim = false;
+				kicked = true;
+			}
+			break;
+		case P2_LEFT:
+			if (kicked) kicked = false;
+			if (this->move == zilch) this->move = aA;
+			if (this->move == aD) this->move = aA;
+			if (this->move == aWD) this->move = aWA;
+			if (this->move == aSD) this->move = aSA;
+			if (this->move == aS) this->move = aSA;
+			if (this->move == aW) this->move = aWA;
+			kickDirection = this->move == zilch ? kickDirection : move;
+			this->angle = kickDirection;
+			break;
+		case P2_RIGHT:
+			if (kicked) kicked = false;
+			if (this->move == zilch) this->move = aD;
+			if (this->move == aA) this->move = aD;
+			if (this->move == aWA) this->move = aWD;
+			if (this->move == aSA) this->move = aSD;
+			if (this->move == aW) this->move = aWD;
+			if (this->move == aS) this->move = aSD;
+			kickDirection = this->move == zilch ? kickDirection : move;
+			this->angle = kickDirection;
+			break;
+		case P2_UP:
+			if (kicked) kicked = false;
+			if (this->move == zilch) this->move = aW;
+			if (this->move == aS) this->move = aW;
+			if (this->move == aSA) this->move = aWA;
+			if (this->move == aSD) this->move = aWD;
+			if (this->move == aA) this->move = aWA;
+			if (this->move == aD) this->move = aWD;
+			kickDirection = this->move == zilch ? kickDirection : move;
+			this->angle = kickDirection;
+			break;
+		case P2_DOWN:
+			if (kicked) kicked = false;
+			if (this->move == zilch) this->move = aS;
+			if (this->move == aW) this->move = aS;
+			if (this->move == aWA) this->move = aSA;
+			if (this->move == aWD) this->move = aSD;
+			if (this->move == aA) this->move = aSA;
+			if (this->move == aD) this->move = aSD;
+			kickDirection = this->move == zilch ? kickDirection : move;
+			this->angle = kickDirection;
+			break;
+		case P2_KICK:
+			std::cout << this->x << "||" << this->y << std::endl;
+			if (kicked) kicked = false;
+			if (!this->isSprint and !this->kicked and !this->drifted)
+			{
+
+				this->aimKick(x, y);
+			}
+		default:
+			break;
+		}
+
+	}
+	void buttonUpRight(SDL_Keycode k)
+	{
+		switch (k)
+		{
+		case P2_LEFT:
+			if (this->move == aA) this->move = zilch;
+			if (this->move == aWA) this->move = aW;
+			if (this->move == aSA) this->move = aS;
+			kickDirection = this->move == zilch ? kickDirection : move;
+			this->angle = kickDirection;
+			break;
+		case P2_RIGHT:
+			if (this->move == aD) this->move = zilch;
+			if (this->move == aWD) this->move = aW;
+			if (this->move == aSD) this->move = aS;
+			kickDirection = this->move == zilch ? kickDirection : move;
+			this->angle = kickDirection;
+			break;
+		case P2_UP:
+			if (this->move == aW) this->move = zilch;
+			if (this->move == aWA) this->move = aA;
+			if (this->move == aWD) this->move = aD;
+			kickDirection = this->move == zilch ? kickDirection : move;
+			this->angle = kickDirection;
+			break;
+		case P2_DOWN:
+			if (this->move == aS) this->move = zilch;
+			if (this->move == aSA) this->move = aA;
+			if (this->move == aSD) this->move = aD;
+			kickDirection = this->move == zilch ? kickDirection : move;
+			this->angle = kickDirection;
+			break;
+		case P2_KICK:
+			if (isAim)
+			{
+				kick = true;
+				isAim = false;
+				kicked = true;
+			}
+		default:
+			break;
+		}
+
 
 	}
 	void collide(double x, double y, double a[PLAYER_NUM][PLAYER_INFO], int idx)
@@ -1019,8 +1204,13 @@ LTexture gFooTexture;
 LTexture gBackgroundTexture;
 Ball ball;
 Player players[PLAYER_NUM*2];
-
-
+LTexture windSock;
+LTexture scoreDisplay;
+SDL_Rect scoreClip = {50*10,0,50,94};
+LTexture scoreDisplay1;
+SDL_Rect scoreClip1 = { 50 * 10,0,50,94 };
+LTexture colon;
+SDL_Rect colonClip = { 584,0,50,94 };
 double playerPos[PLAYER_NUM*2][PLAYER_INFO];
 
 void matchInit(Player p[])
@@ -1123,8 +1313,27 @@ bool loadMedia()
 
 	//Load Foo' texture
 
-	
+	if (!windSock.loadFromFile(windImg))
+	{
+		printf("Failed to load background texture image!\n");
+		success = false;
+	}
 	if (!gBackgroundTexture.loadFromFile(bg))
+	{
+		printf("Failed to load background texture image!\n");
+		success = false;
+	}
+	if (!scoreDisplay.loadFromFile(scoreImg))
+	{
+		printf("Failed to load background texture image!\n");
+		success = false;
+	}
+	if (!scoreDisplay1.loadFromFile(scoreImg))
+	{
+		printf("Failed to load background texture image!\n");
+		success = false;
+	}
+	if (!colon.loadFromFile(scoreImg))
 	{
 		printf("Failed to load background texture image!\n");
 		success = false;
@@ -1151,14 +1360,16 @@ void close()
 
 int main(int argc, char* args[])
 {
+	
 	dir = args[0];
 	dir = dir.substr(0, dir.length() - 18);
 	Uint32 start = 0;
 	Uint32 delay = 0;
+	Uint32 windDelay = 0;
 	//Start up SDL and create window
 	matchInit(players);
+	srand(time(NULL));
 	
-
 
 	if (!init())
 	{
@@ -1173,6 +1384,9 @@ int main(int argc, char* args[])
 		}
 		else
 		{
+			scoreDisplay.setWidth(80);
+			scoreDisplay1.setWidth(80);
+			colon.setWidth(80);
 			//Main loop flag
 			bool quit = false;
 
@@ -1182,6 +1396,10 @@ int main(int argc, char* args[])
 			//While application is running
 			while (!quit)
 			{
+				if (SDL_GetTicks() - windDelay > 20000) {
+					windDelay = SDL_GetTicks();
+					wind = fmod((wind + 90),360);
+				}
 				if ( SDL_GetTicks()-start > SERVER_TICK)
 				{
 					start = SDL_GetTicks();
@@ -1191,8 +1409,14 @@ int main(int argc, char* args[])
 					SDL_RenderClear(gRenderer);
 
 					//Render background texture to screen
-					gBackgroundTexture.render(0, 0);
-
+					gBackgroundTexture.render(0, 0, NULL);
+					colon.render(1100, 100, &colonClip);
+					scoreDisplay.render(950, 100, &scoreClip);
+					colon.render(1020, 100, &colonClip);
+					scoreDisplay1.render(1080, 100, &scoreClip1);
+					scoreClip.x = (score[0]*50);
+					scoreClip1.x = (score[1] * 50);
+					windSock.render(1000, 400, NULL, wind);
 					//Render Foo' to the screen
 					//gFooTexture.render(70, 90);
 					//ball.setPos(333, 111);
@@ -1205,6 +1429,7 @@ int main(int argc, char* args[])
 						isGoal = false;
 						delay = 0;
 						std::cout << score[0] << "-" << score[1];
+						
 					}
 					ball.update(playerPos);
 					
@@ -1238,14 +1463,15 @@ int main(int argc, char* args[])
 					else if (e.key.state == SDL_PRESSED)
 					{
 
-						players[leftControl].buttonDown(e.key.keysym.sym, ball.getX(), ball.getY());
-						
+						players[leftControl].buttonDownLeft(e.key.keysym.sym, ball.getX(), ball.getY());
+						players[rightControl+PLAYER_NUM].buttonDownRight(e.key.keysym.sym, ball.getX(), ball.getY());
 
 
 					} else if (e.key.state == SDL_RELEASED)
 					{
 
-						players[leftControl].buttonUp(e.key.keysym.sym);
+						players[leftControl].buttonUpLeft(e.key.keysym.sym);
+						players[rightControl+ PLAYER_NUM].buttonUpRight(e.key.keysym.sym);
 					}
 				}
 
