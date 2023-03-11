@@ -13,7 +13,7 @@ and may not be redistributed without written permission.*/
 
 
 #define PI 3.14159265
-#define PLAYER_NUM 2
+#define PLAYER_NUM 4
 #define PLAYER_INFO 5
 #define RING_OFFSET 60
 
@@ -32,7 +32,7 @@ const double DOWNX = 905;
 
 const int SCREEN_WIDTH = 1200;
 const int SCREEN_HEIGHT = 600;
-const int BALL_SIZE = 10;
+const int BALL_SIZE = 12;
 const int PLAYER_SIZE = 40;
 //KEYMAP
 //p1
@@ -64,7 +64,7 @@ enum aDirect
 };
 //64 ticks 
 const double COLLIDE_VELOCITY = 25;
-const double KICK_AREA = (BALL_SIZE + PLAYER_SIZE)/2;
+const double KICK_AREA = (BALL_SIZE + PLAYER_SIZE+6)/2;
 const double COLLIDE_SIZE = (BALL_SIZE + PLAYER_SIZE * RING_OFFSET/100)/2;
 const double KICK_POWER = 200;
 const double SERVER_TICK = 1000 / 640;
@@ -80,6 +80,8 @@ std::string dir;
 //Image pathing
 const std::string circle = "ball.png";
 const std::string circle_ring = "circle_ring.bmp";
+const std::string player_1 = "player1.bmp";
+const std::string player_2 = "player2.bmp";
 const std::string bg = "field.png";
 const std::string windImg = "wind.png";
 const std::string scoreImg = "score.png";
@@ -93,7 +95,7 @@ bool kick = false;
 bool isGoal = false;
 bool leftTurn = true;
 int score[2] = { 0,0 };
-int leftControl = 1;
+int leftControl = 0;
 int rightControl = 0;
 double wind = 0;
 double windVelocity = 80;
@@ -748,7 +750,7 @@ public:
 		this->texture.free();
 	}
 
-	void update(double x, double y, double a[PLAYER_NUM][PLAYER_INFO], int idx)
+	void update(double x, double y, double a[PLAYER_NUM][PLAYER_INFO], int idx, SDL_Rect * clip)
 	{
 
 		double nX = this->getX();
@@ -760,12 +762,22 @@ public:
 		boundaryCheck();
 
 		this->makeMove();
-		this->texture.render(this->x - PLAYER_SIZE/2, this->y - PLAYER_SIZE / 2,NULL ,this->angle);
+		if (!inControl) {
+			autoMove(x, y, idx);
+			if (this->collide(x, y, a, idx)) this->setVDirection(angle + 90);
+		}
+		
+		this->texture.render(this->x - PLAYER_SIZE/2, this->y - PLAYER_SIZE / 2, clip,this->angle);
 	}
 
-	void loadImg()
+	void loadImg(int idx)
 	{
-		this->texture.loadFromFile(circle_ring);
+		if (idx < 4) {
+			this->texture.loadFromFile(player_1);
+		}
+		else {
+			this->texture.loadFromFile(player_2);
+		}
 	}
 
 	aDirect getMove()
@@ -793,6 +805,16 @@ public:
 	{
 		this->setX(x);
 		this->setY(y);
+	}
+
+	bool isInControl()
+	{
+		return this->inControl;
+	}
+
+	void setVDirection(double d)
+	{
+		this->vector.setVDirection(d);
 	}
 
 	void setAngle(double a)
@@ -854,6 +876,180 @@ public:
 		this->vector.setFriction(false);
 	}
 
+	void autoMove(double x, double y, int idx)
+	{
+		double dX = (this->x - x);
+		double dY = (this->y - y);
+		double distance = sqrt(dX * dX + dY * dY);
+
+		
+		double degreeXY = atan(abs(dX / dY)) * 180 / PI;
+		double degreeYX = atan(abs(dY / dX)) * 180 / PI;
+		if (dX >= 0 and dY >= 0)
+		{
+			setAngle(degreeYX + 270);
+		}
+		else if (dX <= 0 and dY >= 0)
+		{
+			setAngle(degreeXY );
+		}
+		else if (dX <= 0 and dY <= 0)
+		{
+			setAngle(degreeYX + 90);
+		}
+		else
+		{
+			setAngle(degreeXY+180);
+		}
+
+		const double slowMove = 15;
+		//Goal keeper move
+		if (idx == 1 || idx == 5)
+		{
+			if (idx == 1)
+			{
+				if (this->x > LEFT_GOAL_X + 70)
+				{
+					this->setVelocity(slowMove);
+					this->setVDirection(270);
+					return;
+				}
+				if (this->x < LEFT_GOAL_X + 30)
+				{
+					this->setVelocity(slowMove);
+					this->setVDirection(90);
+					return;
+				}
+			}
+			if (idx == 5)
+			{
+				if (this->x > RIGHT_GOAL_X - 30)
+				{
+					this->setVelocity(slowMove);
+					this->setVDirection(270);
+					return;
+				}
+				if (this->x < RIGHT_GOAL_X - 70)
+				{
+					this->setVelocity(slowMove);
+					this->setVDirection(90);
+					return;
+				}
+			}
+
+			if (y > GOAL_UPY + 10 and y < GOAL_DOWNY - 10)
+			{
+				if (this->y > y + 8)
+				{
+					this->setVelocity(15);
+					this->setVDirection(0);
+					
+				}
+				else if(this->y < y - 8)
+				{
+					this->setVelocity(15);
+					this->setVDirection(180);
+				}
+			}
+			else if (y > GOAL_DOWNY + 60)
+			{
+				if (this->y > GOAL_DOWNY + 8)
+				{
+					this->setVelocity(15);
+					this->setVDirection(0);
+
+				}
+				else if (this->y < GOAL_DOWNY - 8)
+				{
+					this->setVelocity(15);
+					this->setVDirection(180);
+				}
+			}
+			else if (y < GOAL_UPY - 60)
+			{
+				if (this->y > GOAL_UPY + 8)
+				{
+					this->setVelocity(15);
+					this->setVDirection(0);
+
+				}
+				else if (this->y < GOAL_UPY - 8)
+				{
+					this->setVelocity(15);
+					this->setVDirection(180);
+				}
+			}
+			return;
+		}
+
+		// midlefielder move
+		if (idx == 2 || idx == 6)
+		{
+			if (this->y > (GOAL_DOWNY + GOAL_UPY - 110) / 2)
+			{
+				this->setVelocity(slowMove);
+				this->setVDirection(0);
+				return;
+			}
+			if (this->y < (GOAL_DOWNY + GOAL_UPY - 290) / 2)
+			{
+				this->setVelocity(slowMove);
+				this->setVDirection(180);
+				return;
+			}
+			if ((this->x - x) > 200)
+			{
+				this->setVelocity(slowMove);
+				this->setVDirection(270);
+			}
+			if ((this->x - x) < -200)
+			{
+				this->setVelocity(slowMove);
+				this->setVDirection(90);
+			}
+		}
+
+
+		if (idx == 3 || idx == 7)
+		{
+			if (this->y > (GOAL_DOWNY + GOAL_UPY + 290) / 2)
+			{
+				this->setVelocity(slowMove);
+				this->setVDirection(0);
+				return;
+			}
+			if (this->y < (GOAL_DOWNY + GOAL_UPY + 110) / 2)
+			{
+				this->setVelocity(slowMove);
+				this->setVDirection(180);
+				return;
+			}
+			if ((this->x - x) > 200)
+			{
+				this->setVelocity(slowMove);
+				this->setVDirection(270);
+			}
+			if ((this->x - x) < -200)
+			{
+				this->setVelocity(slowMove);
+				this->setVDirection(90);
+			}
+		}
+
+		// striker move
+
+		if (idx == 0 || idx == 4)
+		{
+			if (distance > 80)
+			{
+				this->setVelocity(slowMove);
+				this->setVDirection(angle);
+			}
+		}
+
+
+	}
+
 	void buttonDownLeft(SDL_Keycode k, double x, double y)
 	{
 
@@ -862,8 +1058,9 @@ public:
 		switch (k)
 		{
 		case P1_SWITCH:
-			leftControl = leftControl == 0 ? 1 : 0;
+			leftControl = leftControl < 3 ? leftControl+1 : 0;
 			this->move = zilch;
+			inControl = false;
 			if (isAim)
 			{
 				kick = true;
@@ -872,6 +1069,7 @@ public:
 			}
 			break;
 		case P1_LEFT:
+			inControl = true;
 			if (kicked) kicked = false;
 			if (this->move == zilch) this->move = aA;
 			if (this->move == aD) this->move = aA;
@@ -883,6 +1081,7 @@ public:
 			this->angle = kickDirection;
 			break;
 		case P1_RIGHT:
+			inControl = true;
 			if (kicked) kicked = false;
 			if (this->move == zilch) this->move = aD;
 			if (this->move == aA) this->move = aD;
@@ -894,6 +1093,7 @@ public:
 			this->angle = kickDirection;
 			break;
 		case P1_UP:
+			inControl = true;
 			if (kicked) kicked = false;
 			if (this->move == zilch) this->move = aW;
 			if (this->move == aS) this->move = aW;
@@ -905,6 +1105,7 @@ public:
 			this->angle = kickDirection;
 			break;
 		case P1_DOWN:
+			inControl = true;
 			if (kicked) kicked = false;
 			if (this->move == zilch) this->move = aS;
 			if (this->move == aW) this->move = aS;
@@ -916,7 +1117,7 @@ public:
 			this->angle = kickDirection;
 			break;
 		case P1_KICK:
-			std::cout << this->x << "||" << this->y << std::endl;
+			inControl = true;
 			if (kicked) kicked = false;
 			if (!this->isSprint and !this->kicked and !this->drifted)
 			{
@@ -970,7 +1171,7 @@ public:
 		default:
 			break;
 		}
-		std::cout << kickDirection;
+
 
 	}
 	void buttonDownRight(SDL_Keycode k, double x, double y)
@@ -979,8 +1180,9 @@ public:
 		switch (k)
 		{
 		case P2_SWITCH:
-			rightControl = rightControl == 0 ? 1 : 0;
+			rightControl = rightControl < 3 ? rightControl+1 : 0;
 			this->move = zilch;
+			inControl = false;
 			if (isAim)
 			{
 				kick = true;
@@ -989,6 +1191,7 @@ public:
 			}
 			break;
 		case P2_LEFT:
+			inControl = true;
 			if (kicked) kicked = false;
 			if (this->move == zilch) this->move = aA;
 			if (this->move == aD) this->move = aA;
@@ -1000,6 +1203,7 @@ public:
 			this->angle = kickDirection;
 			break;
 		case P2_RIGHT:
+			inControl = true;
 			if (kicked) kicked = false;
 			if (this->move == zilch) this->move = aD;
 			if (this->move == aA) this->move = aD;
@@ -1011,6 +1215,7 @@ public:
 			this->angle = kickDirection;
 			break;
 		case P2_UP:
+			inControl = true;
 			if (kicked) kicked = false;
 			if (this->move == zilch) this->move = aW;
 			if (this->move == aS) this->move = aW;
@@ -1022,6 +1227,7 @@ public:
 			this->angle = kickDirection;
 			break;
 		case P2_DOWN:
+			inControl = true;
 			if (kicked) kicked = false;
 			if (this->move == zilch) this->move = aS;
 			if (this->move == aW) this->move = aS;
@@ -1033,7 +1239,7 @@ public:
 			this->angle = kickDirection;
 			break;
 		case P2_KICK:
-			std::cout << this->x << "||" << this->y << std::endl;
+			inControl = true;
 			if (kicked) kicked = false;
 			if (!this->isSprint and !this->kicked and !this->drifted)
 			{
@@ -1090,7 +1296,7 @@ public:
 
 
 	}
-	void collide(double x, double y, double a[PLAYER_NUM][PLAYER_INFO], int idx)
+	bool collide(double x, double y, double a[PLAYER_NUM][PLAYER_INFO], int idx)
 	{
 		double dX = (this->x - x);
 		double dY = (this->y -y);
@@ -1129,7 +1335,7 @@ public:
 
 			if (distance < COLLIDE_SIZE)
 			{
-				this->vector.setVelocity(this->vector.getVelocity() * 3 / 10);
+				this->vector.setVelocity(this->vector.getVelocity() * 8 / 10);
 				double degreeXY = atan(abs(dX / dY)) * 180 / PI;
 				double degreeYX = atan(abs(dY / dX)) * 180 / PI;
 				if (dX >= 0 and dY >= 0)
@@ -1148,10 +1354,11 @@ public:
 				{
 					this->vector.setVDirection(degreeXY);
 				}
-
+				return true;
 
 			}
 		}
+		return false;
 
 	}
 
@@ -1204,6 +1411,8 @@ LTexture gFooTexture;
 LTexture gBackgroundTexture;
 Ball ball;
 Player players[PLAYER_NUM*2];
+SDL_Rect playerClip = { 132,0, 116, 98 };
+SDL_Rect playerClip1 = { 0,0, 116, 98 };
 LTexture windSock;
 LTexture scoreDisplay;
 SDL_Rect scoreClip = {50*10,0,50,94};
@@ -1234,8 +1443,14 @@ void matchInit(Player p[])
 	
 	p[0].setPos((LEFT_GOAL_X + RIGHT_GOAL_X - 160) / 2, (GOAL_DOWNY + GOAL_UPY + 4) / 2);
 	p[1].setPos((LEFT_GOAL_X + 50) , (GOAL_DOWNY + GOAL_UPY + 4) / 2);
-	p[2].setPos((LEFT_GOAL_X + RIGHT_GOAL_X + 160) / 2, (GOAL_DOWNY + GOAL_UPY + 4) / 2);
-	p[3].setPos((RIGHT_GOAL_X - 50), (GOAL_DOWNY + GOAL_UPY + 4) / 2);
+	p[2].setPos((LEFT_GOAL_X + RIGHT_GOAL_X - 360)/2, (GOAL_DOWNY + GOAL_UPY - 110) / 2);
+	p[3].setPos((LEFT_GOAL_X + RIGHT_GOAL_X - 360)/2, (GOAL_DOWNY + GOAL_UPY + 290) / 2);
+
+	p[4].setPos((LEFT_GOAL_X + RIGHT_GOAL_X + 160) / 2, (GOAL_DOWNY + GOAL_UPY + 4) / 2);
+	p[5].setPos((RIGHT_GOAL_X - 50), (GOAL_DOWNY + GOAL_UPY + 4) / 2);
+	p[6].setPos((LEFT_GOAL_X + RIGHT_GOAL_X + 360) / 2, (GOAL_DOWNY + GOAL_UPY - 200) / 2);
+	p[7].setPos((LEFT_GOAL_X + RIGHT_GOAL_X + 360)/2, (GOAL_DOWNY + GOAL_UPY + 200) / 2);
+
 	ball.setVelocity(0);
 	ball.setPos((LEFT_GOAL_X + RIGHT_GOAL_X-3)/2, (GOAL_DOWNY + GOAL_UPY+4) / 2);
 
@@ -1301,7 +1516,7 @@ bool loadMedia()
 	ball.loadImg();
 	for (int i = 0; i < PLAYER_NUM*2; i++)
 	{
-		players[i].loadImg();
+		players[i].loadImg(i);
 		players[i].setDimension(PLAYER_SIZE, PLAYER_SIZE);
 	}
 
@@ -1428,15 +1643,22 @@ int main(int argc, char* args[])
 						matchInit(players);
 						isGoal = false;
 						delay = 0;
-						std::cout << score[0] << "-" << score[1];
+
 						
 					}
 					ball.update(playerPos);
 					
 					for (int i = 0; i < PLAYER_NUM*2; i++)
 					{
-
-					players[i].update(ball.getX(), ball.getY(), playerPos, i);
+						if (players[i].isInControl())
+						{
+							players[i].update(ball.getX(), ball.getY(), playerPos, i, &playerClip1);
+						}
+						else
+						{
+							players[i].update(ball.getX(), ball.getY(), playerPos, i, &playerClip);
+						}
+					
 					playerPos[i][0] = players[i].getX();
 					playerPos[i][1] = players[i].getY();
 					playerPos[i][2] = players[i].getMove() != zilch ? 30 : 8;
