@@ -17,6 +17,8 @@ and may not be redistributed without written permission.*/
 #define PLAYER_INFO 5
 #define RING_OFFSET 60
 
+
+
 //565 910 27 80
 //Screen dimension constants
 const double UPX = 84;
@@ -382,11 +384,11 @@ public:
 		{
 			setVDirection(this->aDirection);
 		}
-		else if (this->velocity < this->vMax * 70 / 100 and temp <= 90)
+		else if (this->velocity < this->vMax * 70 / 100 && temp <= 90)
 		{
 			setVDirection(this->aDirection);
 		}
-		else if (this->velocity < this->vMax * 90 / 100 and temp <= 45)
+		else if (this->velocity < this->vMax * 90 / 100 && temp <= 45)
 		{
 			setVDirection(this->aDirection);
 		}
@@ -523,7 +525,7 @@ public:
 			
 			for (int i = 0; i < PLAYER_NUM*2; i++)
 			{
-				if (arr[i][4] == 1 and sqrt((arr[i][0] - this->x) * (arr[i][0] - this->x) + (arr[i][1] - this->y) * (arr[i][1] - this->y)) < KICK_AREA ) {
+				if (arr[i][4] == 1 && sqrt((arr[i][0] - this->x) * (arr[i][0] - this->x) + (arr[i][1] - this->y) * (arr[i][1] - this->y)) < KICK_AREA ) {
 
 					kick = false;
 					this->vector.setVelocity(KICK_POWER);
@@ -575,7 +577,7 @@ public:
 	{
 		return this->texture;
 	}
-	//Starts up SDL and creates window
+	//Starts up SDL && creates window
 	void setDimension(int w, int h)
 	{
 		this->texture.setDimension(w, h);
@@ -589,13 +591,13 @@ public:
 	void wallBounce()
 	{
 		double direction = vector.getVDirection();
-		if (((this->x > DOWNX and this->x < RIGHT_GOAL_X)) and (this->y < GOAL_DOWNY and this->y > GOAL_UPY) and !isGoal)
+		if (((this->x > DOWNX && this->x < RIGHT_GOAL_X)) && (this->y < GOAL_DOWNY && this->y > GOAL_UPY) && !isGoal)
 		{
 			score[0]++;
 			leftTurn = false;
 			isGoal = true;
 		}
-		if (((this->x < UPX and this->x > LEFT_GOAL_X)) and (this->y < GOAL_DOWNY and this->y > GOAL_UPY) and !isGoal)
+		if (((this->x < UPX && this->x > LEFT_GOAL_X)) && (this->y < GOAL_DOWNY && this->y > GOAL_UPY) && !isGoal)
 		{
 			score[1]++;
 			leftTurn = true;
@@ -617,7 +619,7 @@ public:
 			vector.setVelocity(vector.getVelocity() / 4);
 			return;
 		}
-		else if (((this->x < UPX and this->x > LEFT_GOAL_X) or (this->x > DOWNX and this->x < RIGHT_GOAL_X)) and this->y < GOAL_UPY and this->y > GOAL_UPY - 4)
+		else if (((this->x < UPX && this->x > LEFT_GOAL_X) || (this->x > DOWNX && this->x < RIGHT_GOAL_X)) && this->y < GOAL_UPY && this->y > GOAL_UPY - 4)
 		{
 			this->y = GOAL_UPY;
 			double boundDirection = direction < 90 ? 180 - direction : 540 - direction;
@@ -625,7 +627,7 @@ public:
 			vector.setVelocity(vector.getVelocity() / 20);
 			return;
 		}
-		else if (((this->x < UPX and this->x > LEFT_GOAL_X) or (this->x > DOWNX and this->x < RIGHT_GOAL_X)) and this->y > GOAL_DOWNY and this->y < GOAL_DOWNY + 4)
+		else if (((this->x < UPX && this->x > LEFT_GOAL_X) || (this->x > DOWNX && this->x < RIGHT_GOAL_X)) && this->y > GOAL_DOWNY && this->y < GOAL_DOWNY + 4)
 		{
 
 			this->y = GOAL_DOWNY;
@@ -634,7 +636,7 @@ public:
 			vector.setVelocity(vector.getVelocity() / 20);
 			return;
 		}
-		if (this->x > DOWNX and (this->y > GOAL_DOWNY or this->y < GOAL_UPY))
+		if (this->x > DOWNX && (this->y > GOAL_DOWNY || this->y < GOAL_UPY))
 		{
 			
 			this->x = DOWNX;
@@ -642,7 +644,7 @@ public:
 			vector.setVelocity(vector.getVelocity() / 4);
 			return;
 		}
-		else if (this->x < UPX and (this->y > GOAL_DOWNY or this->y < GOAL_UPY) )
+		else if (this->x < UPX && (this->y > GOAL_DOWNY || this->y < GOAL_UPY) )
 		{
 			this->x = UPX;
 			vector.setVDirection(direction - 360);
@@ -684,15 +686,15 @@ public:
 				this->vector.setVelocity(COLLIDE_VELOCITY);
 				double degreeXY = atan(abs(dX / dY)) * 180 / PI;
 				double degreeYX = atan(abs(dY / dX)) * 180 / PI;
-				if (dX >= 0 and dY >= 0)
+				if (dX >= 0 && dY >= 0)
 				{
 					this->vector.setVDirection(degreeYX + 90);
 				}
-				else if (dX <= 0 and dY >= 0)
+				else if (dX <= 0 && dY >= 0)
 				{
 					this->vector.setVDirection(degreeXY + 180);
 				}
-				else if (dX <= 0 and dY <= 0)
+				else if (dX <= 0 && dY <= 0)
 				{
 					this->vector.setVDirection(degreeYX + 270);
 				}
@@ -885,15 +887,15 @@ public:
 		
 		double degreeXY = atan(abs(dX / dY)) * 180 / PI;
 		double degreeYX = atan(abs(dY / dX)) * 180 / PI;
-		if (dX >= 0 and dY >= 0)
+		if (dX >= 0 && dY >= 0)
 		{
 			setAngle(degreeYX + 270);
 		}
-		else if (dX <= 0 and dY >= 0)
+		else if (dX <= 0 && dY >= 0)
 		{
 			setAngle(degreeXY );
 		}
-		else if (dX <= 0 and dY <= 0)
+		else if (dX <= 0 && dY <= 0)
 		{
 			setAngle(degreeYX + 90);
 		}
@@ -937,7 +939,7 @@ public:
 				}
 			}
 
-			if (y > GOAL_UPY + 10 and y < GOAL_DOWNY - 10)
+			if (y > GOAL_UPY + 10 && y < GOAL_DOWNY - 10)
 			{
 				if (this->y > y + 8)
 				{
@@ -1119,7 +1121,7 @@ public:
 		case P1_KICK:
 			inControl = true;
 			if (kicked) kicked = false;
-			if (!this->isSprint and !this->kicked and !this->drifted)
+			if (!this->isSprint && !this->kicked && !this->drifted)
 			{
 				
 				this->aimKick( x,  y);
@@ -1241,7 +1243,7 @@ public:
 		case P2_KICK:
 			inControl = true;
 			if (kicked) kicked = false;
-			if (!this->isSprint and !this->kicked and !this->drifted)
+			if (!this->isSprint && !this->kicked && !this->drifted)
 			{
 
 				this->aimKick(x, y);
@@ -1307,15 +1309,15 @@ public:
 			this->vector.setVelocity(this->vector.getVelocity()*3/10);
 			double degreeXY = atan(abs(dX / dY)) * 180 / PI;
 			double degreeYX = atan(abs(dY / dX)) * 180 / PI;
-			if (dX >= 0 and dY >= 0)
+			if (dX >= 0 && dY >= 0)
 			{
 				this->vector.setVDirection(degreeYX + 90);
 			}
-			else if (dX <= 0 and dY >= 0)
+			else if (dX <= 0 && dY >= 0)
 			{
 				this->vector.setVDirection(degreeXY + 180);
 			}
-			else if (dX <= 0 and dY <= 0)
+			else if (dX <= 0 && dY <= 0)
 			{
 				this->vector.setVDirection(degreeYX + 270);
 			}
@@ -1338,15 +1340,15 @@ public:
 				this->vector.setVelocity(this->vector.getVelocity() * 8 / 10);
 				double degreeXY = atan(abs(dX / dY)) * 180 / PI;
 				double degreeYX = atan(abs(dY / dX)) * 180 / PI;
-				if (dX >= 0 and dY >= 0)
+				if (dX >= 0 && dY >= 0)
 				{
 					this->vector.setVDirection(degreeYX + 90);
 				}
-				else if (dX <= 0 and dY >= 0)
+				else if (dX <= 0 && dY >= 0)
 				{
 					this->vector.setVDirection(degreeXY + 180);
 				}
-				else if (dX <= 0 and dY <= 0)
+				else if (dX <= 0 && dY <= 0)
 				{
 					this->vector.setVDirection(degreeYX + 270);
 				}
@@ -1402,7 +1404,7 @@ bool init();
 //Loads media
 bool loadMedia();
 
-//Frees media and shuts down SDL
+//Frees media && shuts down SDL
 void close();
 
 
@@ -1421,6 +1423,7 @@ SDL_Rect scoreClip1 = { 50 * 10,0,50,94 };
 LTexture colon;
 SDL_Rect colonClip = { 584,0,50,94 };
 double playerPos[PLAYER_NUM*2][PLAYER_INFO];
+
 
 void matchInit(Player p[])
 {
@@ -1575,7 +1578,7 @@ void close()
 
 int main(int argc, char* args[])
 {
-	
+
 	dir = args[0];
 	dir = dir.substr(0, dir.length() - 18);
 	Uint32 start = 0;
@@ -1635,10 +1638,10 @@ int main(int argc, char* args[])
 					//Render Foo' to the screen
 					//gFooTexture.render(70, 90);
 					//ball.setPos(333, 111);
-					if (delay == 0 and isGoal) {
+					if (delay == 0 && isGoal) {
 						delay = SDL_GetTicks();
 					}
-					if (SDL_GetTicks() - delay > 2000 and isGoal)
+					if (SDL_GetTicks() - delay > 2000 && isGoal)
 					{
 						matchInit(players);
 						isGoal = false;
@@ -1650,7 +1653,7 @@ int main(int argc, char* args[])
 					
 					for (int i = 0; i < PLAYER_NUM*2; i++)
 					{
-						if (players[i].isInControl())
+						if (players[i].isInControl() || i == leftControl || i == PLAYER_NUM + rightControl)
 						{
 							players[i].update(ball.getX(), ball.getY(), playerPos, i, &playerClip1);
 						}
