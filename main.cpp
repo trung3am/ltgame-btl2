@@ -81,11 +81,12 @@ const double frictionThreshold = 85;
 std::string dir;
 //Image pathing
 const std::string circle = "ball.png";
-const std::string circle_ring = "circle_ring.bmp";
+//const std::string circle_ring = "circle_ring.bmp";
 const std::string player_1 = "player1.bmp";
 const std::string player_2 = "player2.bmp";
 const std::string bg = "field.png";
 const std::string windImg = "wind.png";
+const std::string goalImg = "goal.png";
 const std::string scoreImg = "score.png";
 
 //The window we'll be rendering to
@@ -769,7 +770,7 @@ public:
 			if (this->collide(x, y, a, idx)) this->setVDirection(angle + 90);
 		}
 		
-		this->texture.render(this->x - PLAYER_SIZE/2, this->y - PLAYER_SIZE / 2, clip,this->angle);
+		this->texture.render(this->x - PLAYER_SIZE/2, this->y - PLAYER_SIZE / 2, clip,this->angle==180?0:this->angle==90?45:this->angle==270?315:this->angle);
 	}
 
 	void loadImg(int idx)
@@ -1416,6 +1417,7 @@ Player players[PLAYER_NUM*2];
 SDL_Rect playerClip = { 132,0, 116, 98 };
 SDL_Rect playerClip1 = { 0,0, 116, 98 };
 LTexture windSock;
+LTexture goalDisplay;
 LTexture scoreDisplay;
 SDL_Rect scoreClip = {50*10,0,50,94};
 LTexture scoreDisplay1;
@@ -1536,6 +1538,11 @@ bool loadMedia()
 		printf("Failed to load background texture image!\n");
 		success = false;
 	}
+	if (!goalDisplay.loadFromFile(goalImg))
+	{
+		printf("Failed to load background texture image!\n");
+		success = false;
+	}
 	if (!gBackgroundTexture.loadFromFile(bg))
 	{
 		printf("Failed to load background texture image!\n");
@@ -1628,20 +1635,21 @@ int main(int argc, char* args[])
 
 					//Render background texture to screen
 					gBackgroundTexture.render(0, 0, NULL);
-					colon.render(1100, 100, &colonClip);
+					//colon.render(1100, 100, &colonClip);
 					scoreDisplay.render(950, 100, &scoreClip);
 					colon.render(1020, 100, &colonClip);
 					scoreDisplay1.render(1080, 100, &scoreClip1);
 					scoreClip.x = (score[0]*50);
 					scoreClip1.x = (score[1] * 50);
 					windSock.render(1000, 400, NULL, wind);
+					if (isGoal) goalDisplay.render(300, 200, NULL, 0);
 					//Render Foo' to the screen
 					//gFooTexture.render(70, 90);
 					//ball.setPos(333, 111);
 					if (delay == 0 && isGoal) {
 						delay = SDL_GetTicks();
 					}
-					if (SDL_GetTicks() - delay > 2000 && isGoal)
+					if (SDL_GetTicks() - delay > 2500 && isGoal)
 					{
 						matchInit(players);
 						isGoal = false;
